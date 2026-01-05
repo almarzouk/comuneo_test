@@ -1,15 +1,511 @@
-@import "tailwindcss";
-
-@theme {
-  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif,
-    "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
 }
 
-html,
 body {
-  @apply bg-white dark:bg-gray-950;
+  font-family:
+    system-ui,
+    -apple-system,
+    sans-serif;
+  background: #f3f4f6;
+  padding: 0;
+}
 
-  @media (prefers-color-scheme: dark) {
-    color-scheme: dark;
+/* Todos Page Layout */
+.todos-page {
+  min-height: 100vh;
+  background-color: #f3f4f6;
+}
+
+/* Header */
+.todos-header {
+  background-color: white;
+  border-bottom: 1px solid #e5e7eb;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.header-container {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 20px 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.header-title {
+  margin: 0;
+  font-size: 28px;
+  color: #1f2937;
+  font-weight: 700;
+}
+
+.header-subtitle {
+  margin: 4px 0 0 0;
+  color: #6b7280;
+  font-size: 14px;
+}
+
+.logout-btn {
+  background-color: #ef4444;
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 15px;
+  font-weight: 600;
+  transition: all 0.2s;
+}
+
+.logout-btn:hover {
+  background-color: #dc2626;
+}
+
+/* Main Content */
+.main-content {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 32px 24px;
+}
+
+/* Add Task Card */
+.add-task-card {
+  background: white;
+  padding: 20px;
+  border-radius: 6px;
+  border: 1px solid #e5e7eb;
+  margin-bottom: 24px;
+}
+
+.add-task-title {
+  margin: 0 0 16px 0;
+  font-size: 18px;
+  color: #1f2937;
+  font-weight: 600;
+}
+
+.add-task-form {
+  display: flex;
+  gap: 12px;
+}
+
+.add-task-input {
+  flex: 1;
+  padding: 10px 14px;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  font-size: 15px;
+  outline: none;
+  margin: 0;
+  flex: 3;
+}
+
+.add-task-input:focus {
+  border-color: #9ca3af;
+}
+
+.add-task-btn {
+  background: #10b981;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 15px;
+  font-weight: 500;
+  white-space: nowrap;
+  min-width: 100px;
+  flex: 1;
+  margin-top: 0;
+}
+
+/* Tasks Section */
+.tasks-section-title {
+  margin: 0 0 20px 0;
+  font-size: 20px;
+  color: #1f2937;
+  font-weight: 700;
+}
+
+/* Empty State */
+.empty-state {
+  background-color: white;
+  padding: 48px 24px;
+  border-radius: 12px;
+  text-align: center;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.empty-state-icon {
+  font-size: 48px;
+  margin: 0 0 16px 0;
+}
+
+.empty-state-text {
+  margin: 0;
+  color: #6b7280;
+  font-size: 16px;
+}
+
+.empty-state-subtext {
+  margin: 8px 0 0 0;
+  color: #9ca3af;
+  font-size: 14px;
+}
+
+/* Tasks List */
+.tasks-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* Todo Item */
+.todo-item-wrapper {
+  margin-bottom: 0;
+}
+
+.todo-item-wrapper.nested {
+  margin-left: 30px;
+  margin-top: 8px;
+}
+
+.todo-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: white;
+  border-radius: 6px;
+  border: 1px solid #e5e7eb;
+}
+
+.todo-form {
+  display: flex;
+  margin: 0;
+}
+
+.toggle-btn {
+  background: white;
+  border: 2px solid #d1d5db;
+  cursor: pointer;
+  font-size: 16px;
+  padding: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  min-height: 24px;
+  border-radius: 4px;
+}
+
+.toggle-btn.completed {
+  background: #10b981;
+  border-color: #10b981;
+  color: white;
+}
+
+.toggle-btn:disabled {
+  cursor: wait;
+  opacity: 0.6;
+}
+
+.expand-btn {
+  background: #f9fafb;
+  border: 1px solid #d1d5db;
+  cursor: pointer;
+  font-size: 10px;
+  padding: 4px 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #6b7280;
+  min-width: 22px;
+  border-radius: 4px;
+  max-width: 30px;
+}
+
+.todo-title {
+  flex: 1;
+  font-size: 15px;
+  font-weight: 400;
+  color: #1f2937;
+  line-height: 1.5;
+}
+
+.todo-title.completed {
+  text-decoration: line-through;
+  color: #9ca3af;
+}
+
+.subtask-count {
+  font-size: 12px;
+  color: #6b7280;
+  font-weight: 500;
+  margin-left: 6px;
+  background: #f3f4f6;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.delete-btn {
+  background: #ef4444;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+/* Subtask Form */
+.subtask-form {
+  margin-top: 8px;
+  margin-left: 36px;
+  display: flex;
+  gap: 8px;
+}
+
+.subtask-input {
+  flex: 1;
+  padding: 8px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  font-size: 14px;
+  outline: none;
+  margin: 0;
+  flex: 3;
+}
+
+.subtask-input:focus {
+  border-color: #9ca3af;
+}
+
+.subtask-btn {
+  background: #10b981;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: 500;
+  flex: 1;
+}
+
+.subtasks-container {
+  margin-top: 8px;
+}
+
+/* Login/Signup Pages */
+.container {
+  max-width: 600px;
+  margin: 0 auto;
+  background: white;
+  padding: 30px;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+h1 {
+  margin-bottom: 20px;
+  color: #333;
+}
+
+/* Form Field Wrapper */
+.form-field {
+  margin-bottom: 20px;
+}
+
+input,
+button {
+  padding: 10px;
+  font-size: 16px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+input {
+  width: 100%;
+  margin-bottom: 0;
+}
+
+input[aria-invalid="true"] {
+  border-color: #ef4444;
+  background-color: #fef2f2;
+}
+
+input[aria-invalid="true"]:focus {
+  outline: 2px solid #ef4444;
+  outline-offset: 2px;
+}
+
+.field-error {
+  display: block;
+  color: #dc2626;
+  font-size: 14px;
+  margin-top: 6px;
+  padding-left: 4px;
+}
+
+button {
+  background: #007bff;
+  color: white;
+  border: none;
+  cursor: pointer;
+  width: 100%;
+  margin-top: 10px;
+}
+
+button:hover {
+  background: #0056b3;
+}
+
+.error {
+  color: red;
+  margin-bottom: 10px;
+  padding: 12px;
+  background-color: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 6px;
+}
+
+a {
+  color: #007bff;
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+/* Error Page Styles */
+.error-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 20px;
+}
+
+.error-container {
+  padding: 60px 40px;
+  border-radius: 16px;
+  text-align: center;
+  max-width: 500px;
+  width: 100%;
+  animation: fadeIn 0.5s ease-in;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.error-code {
+  font-size: 120px;
+  font-weight: bold;
+  background: #000;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin: 0 0 20px 0;
+  line-height: 1;
+}
+
+.error-title {
+  font-size: 32px;
+  color: #1f2937;
+  margin: 0 0 16px 0;
+  font-weight: 700;
+}
+
+.error-message {
+  font-size: 16px;
+  color: #6b7280;
+  margin: 0 0 40px 0;
+  line-height: 1.6;
+}
+
+.error-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.btn-primary {
+  background: #000;
+  color: white;
+  padding: 14px 32px;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  text-decoration: none;
+  display: inline-block;
+  transition:
+    transform 0.2s,
+    box-shadow 0.2s;
+  border: none;
+  cursor: pointer;
+}
+
+.btn-primary:hover {
+  transform: translateY(-2px);
+  text-decoration: none;
+}
+
+.btn-secondary {
+  background: white;
+  color: #000;
+  padding: 14px 32px;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  text-decoration: none;
+  display: inline-block;
+  transition:
+    transform 0.2s,
+    box-shadow 0.2s;
+  border: 2px solid #0000;
+  cursor: pointer;
+}
+
+.btn-secondary:hover {
+  transform: translateY(-2px);
+  background: #f8f9ff;
+}
+
+@media (max-width: 600px) {
+  .error-container {
+    padding: 40px 24px;
+  }
+
+  .error-code {
+    font-size: 80px;
+  }
+
+  .error-title {
+    font-size: 24px;
+  }
+
+  .error-actions {
+    flex-direction: column;
+  }
+
+  .btn-primary,
+  .btn-secondary {
+    width: 100%;
   }
 }

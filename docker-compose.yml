@@ -1,0 +1,65 @@
+# Docker Compose für lokale Entwicklung und Testing
+version: "3.9"
+
+services:
+  # Todo App Service
+  todoapp:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production-dependencies-env
+    container_name: todoapp-prod
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      # Appwrite Credentials (aus .env laden)
+      - APPWRITE_ENDPOINT=${APPWRITE_ENDPOINT}
+      - APPWRITE_PROJECT_ID=${APPWRITE_PROJECT_ID}
+      - APPWRITE_API_KEY=${APPWRITE_API_KEY}
+      - APPWRITE_DATABASE_ID=${APPWRITE_DATABASE_ID}
+      - APPWRITE_TODOS_COLLECTION_ID=${APPWRITE_TODOS_COLLECTION_ID}
+    env_file:
+      - .env
+    restart: unless-stopped
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "require('http').get('http://localhost:3000', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
+    networks:
+      - todoapp-network
+
+  # Optional: nginx als Reverse Proxy (für Production-ähnliches Setup)
+  nginx:
+    image: nginx:alpine
+    container_name: todoapp-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - todoapp
+    restart: unless-stopped
+    networks:
+      - todoapp-network
+    profiles:
+      - production
+
+networks:
+  todoapp-network:
+    driver: bridge
+
+# Volumes für Persistent Data (falls benötigt)
+volumes:
+  todoapp-data:
+    driver: local
