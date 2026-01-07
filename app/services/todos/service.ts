@@ -1,4 +1,4 @@
-// Todos Service - خدمة إدارة المهام الرئيسية
+// Todos Service - Hauptverwaltung der Aufgaben
 import { redirect } from "react-router";
 import { createSessionClient } from "~/lib/appwrite.server";
 import { ID, Query, type Databases } from "node-appwrite";
@@ -9,7 +9,7 @@ import type { Todo } from "./types";
 const { DATABASE_ID, TODOS_COLLECTION_ID } = DATABASE_CONFIG;
 
 /**
- * جلب جميع مهام المستخدم الحالي
+ * Alle Hauptaufgaben des aktuellen Benutzers abrufen
  */
 export async function getUserTodos(request: Request) {
   try {
@@ -18,20 +18,51 @@ export async function getUserTodos(request: Request) {
     const response = await databases.listDocuments(
       DATABASE_ID,
       TODOS_COLLECTION_ID,
-      [Query.equal("userId", user.$id), Query.limit(1000)]
+      [
+        Query.equal("userId", user.$id),
+        Query.isNull("parentId"), // Nur Hauptaufgaben abrufen
+        Query.limit(1000),
+      ]
     );
 
     const todos = response.documents as unknown as Todo[];
-    const rootTodos = buildTodoHierarchy(todos);
-
-    return { todos: rootTodos, user };
+    // buildTodoHierarchy nicht erforderlich, da noch keine children geladen
+    return { todos, user };
   } catch (error) {
-    return redirect("/login");
+    // Redirect mit Löschung des ungültigen Cookies
+    throw new Response(null, {
+      status: 302,
+      headers: {
+        Location: "/login",
+        "Set-Cookie": `a_session_${process.env.APPWRITE_PROJECT_ID}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0`,
+      },
+    });
   }
 }
 
 /**
- * neue Aufgabe hinzufügen
+ * Unteraufgaben einer bestimmten Aufgabe abrufen
+ */
+export async function getChildTodos(
+  databases: Databases,
+  userId: string,
+  parentId: string
+) {
+  const response = await databases.listDocuments(
+    DATABASE_ID,
+    TODOS_COLLECTION_ID,
+    [
+      Query.equal("userId", userId),
+      Query.equal("parentId", parentId),
+      Query.limit(100),
+    ]
+  );
+
+  return response.documents as unknown as Todo[];
+}
+
+/**
+ * Neue Aufgabe hinzufügen
  */
 export async function addTodo(
   databases: Databases,
@@ -129,12 +160,10 @@ export async function handleTodoAction(request: Request) {
     return deleteTodoWithChildren(databases, todoId);
   }
 
-  if (intent === "logout") {
-    return redirect("/login", {
-      headers: {
-        "Set-Cookie": `a_session_6954432d000792378fb8=; Path=/; HttpOnly; SameSite=Strict; Max-Age=0`,
-      },
-    });
+  if (intent === "loadChildren") {
+    const parentId = formData.get("parentId") as string;
+    const children = await getChildTodos(databases, user.$id, parentId);
+    return { children, parentId };
   }
 
   return { error: "Unbekannte Aktion" };

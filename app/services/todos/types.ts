@@ -1,4 +1,4 @@
-// Todos Types - أنواع بيانات المهام
+// Todos Types
 
 /**
  * Data structure representing a Todo item

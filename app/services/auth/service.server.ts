@@ -26,9 +26,12 @@ import {
  */
 export async function checkIfAlreadyAuthenticated(request: Request) {
   try {
-    await createSessionClient(request);
-    return redirect("/todos");
+    const session = await createSessionClient(request);
+    throw redirect("/todos");
   } catch (error) {
+    if (error instanceof Response) {
+      throw error;
+    }
     return null;
   }
 }
@@ -54,10 +57,26 @@ export async function loginUser(credentials: LoginCredentials) {
     const client = createAdminClient();
     const account = new Account(client);
     const session = await account.createEmailPasswordSession(email, password);
-    const headers = createSessionCookie(session.userId);
 
-    return redirect("/todos", { headers });
+    if (!session.secret) {
+      return {
+        error:
+          "Fehler beim Erstellen der Session. Bitte versuchen Sie es erneut.",
+      };
+    }
+
+    const headers = createSessionCookie(session.secret);
+    const cookieHeader = headers.get("Set-Cookie");
+
+    throw redirect("/todos", {
+      headers: {
+        "Set-Cookie": cookieHeader || "",
+      },
+    });
   } catch (error: any) {
+    if (error instanceof Response) {
+      throw error;
+    }
     return { error: handleAuthError(error) };
   }
 }
@@ -83,12 +102,31 @@ export async function signupUser(credentials: SignupCredentials) {
     const client = createAdminClient();
     const account = new Account(client);
 
-    await account.create(ID.unique(), email, password, name);
-    const session = await account.createEmailPasswordSession(email, password);
-    const headers = createSessionCookie(session.userId);
+    const user = await account.create(ID.unique(), email, password, name);
 
-    return redirect("/todos", { headers });
+    const session = await account.createEmailPasswordSession(email, password);
+
+    if (!session.secret) {
+      return {
+        error:
+          "Benutzer erstellt, aber Anmeldung fehlgeschlagen. Bitte melden Sie sich manuell an.",
+      };
+    }
+
+    const headers = createSessionCookie(session.secret);
+    const cookieHeader = headers.get("Set-Cookie");
+
+    return new Response(null, {
+      status: 302,
+      headers: {
+        Location: "/todos",
+        "Set-Cookie": cookieHeader || "",
+      },
+    });
   } catch (error: any) {
+    if (error instanceof Response) {
+      throw error;
+    }
     return { error: handleAuthError(error) };
   }
 }
@@ -96,14 +134,47 @@ export async function signupUser(credentials: SignupCredentials) {
 /**
  * Meldet den Benutzer ab
  *
- * Löscht das Session-Cookie und leitet zur Login-Seite weiter
+ * Löscht die Session aus Appwrite und das Session-Cookie,
+ * dann leitet zur Login-Seite weiter
  *
+ * @param request - Die eingehende HTTP-Anfrage
  * @returns Redirect zur Login-Seite mit gelöschtem Cookie
  */
-export function logoutUser() {
-  return redirect("/login", {
+export async function logoutUser(request: Request) {
+  const projectId = process.env.APPWRITE_PROJECT_ID!;
+  const cookieName = `a_session_${projectId}`;
+
+  try {
+    const session = await createSessionClient(request);
+    await session.account.deleteSession("current");
+  } catch (error) {
+    // Cookie trotzdem löschen, auch wenn Session-Löschung fehlschlägt
+  }
+
+  return new Response(null, {
+    status: 302,
     headers: {
-      "Set-Cookie": `a_session_${process.env.APPWRITE_PROJECT_ID}=; Path=/; HttpOnly; SameSite=Strict; Max-Age=0`,
+      Location: "/login",
+      "Set-Cookie": `${cookieName}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0`,
     },
   });
+}
+
+/**
+ * Erfordert, dass der Benutzer authentifiziert ist
+ *
+ * Überprüft eine gültige Session und leitet zur
+ * Login-Seite weiter, falls nicht authentifiziert
+ *
+ * @param request - Die eingehende HTTP-Anfrage
+ * @returns User object wenn authentifiziert
+ * @throws Redirect zu /login wenn nicht authentifiziert
+ */
+export async function requireAuth(request: Request) {
+  try {
+    const session = await createSessionClient(request);
+    return session.user;
+  } catch (error) {
+    throw redirect("/login");
+  }
 }

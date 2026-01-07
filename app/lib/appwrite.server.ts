@@ -1,19 +1,31 @@
-// Appwrite Server - تصدير جميع وظائف Appwrite
-// هذا الملف للتوافق مع الإصدارات السابقة
+// ~/lib/appwrite.server.ts
+// Main export file for all Appwrite server-side utilities
 
-export { adminClient as databases } from "./appwrite.config.server";
-export { adminClient } from "./appwrite.config.server";
+// Export admin client and config
+export { adminClient, appwriteConfig } from "./appwrite.config.server";
+
+// Export session management functions
 export {
   createSessionClient,
   getSessionFromCookies,
   getCurrentUser,
+  hasValidSession,
 } from "./appwrite.session.server";
 
-// للتوافق مع الكود القديم
+// Export auth helpers
+export {
+  createAdminClient,
+  createSessionCookie,
+  handleAuthError,
+  validateEnvironmentVariables,
+} from "../services/auth/helpers.server";
+
+// For backward compatibility
 export { createSessionClient as createSessionFromCookies } from "./appwrite.session.server";
 
-// تصدير Users API
-import { Users } from "node-appwrite";
+// Export Users API helper
+import { Users, Databases } from "node-appwrite";
 import { adminClient } from "./appwrite.config.server";
 
 export const users = new Users(adminClient);
+export const databases = new Databases(adminClient);

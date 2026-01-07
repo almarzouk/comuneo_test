@@ -1,17 +1,21 @@
 // Todo-Item-Komponente mit Unteraufgaben-Support
-import { Form, useNavigation } from "react-router";
+import { Form, useNavigation, useFetcher } from "react-router";
 import { useEffect, useRef, useState } from "react";
 import type { Todo } from "~/services/todos/types";
 
 type TodoItemProps = {
   todo: Todo;
   level?: number;
+  loadedChildren: Record<string, Todo[]>;
 };
 
-export function TodoItem({ todo, level = 0 }: TodoItemProps) {
+export function TodoItem({ todo, level = 0, loadedChildren }: TodoItemProps) {
   const navigation = useNavigation();
+  const fetcher = useFetcher();
+  const addSubtaskFetcher = useFetcher();
   const subtaskFormRef = useRef<HTMLFormElement>(null);
-  const [isExpanded, setIsExpanded] = useState(true);
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [localChildren, setLocalChildren] = useState<Todo[]>([]);
 
   const isDeleting =
     (navigation.state === "submitting" || navigation.state === "loading") &&
@@ -22,6 +26,59 @@ export function TodoItem({ todo, level = 0 }: TodoItemProps) {
     navigation.state === "submitting" &&
     navigation.formData?.get("intent") === "toggle" &&
     navigation.formData?.get("todoId") === todo.$id;
+
+  // Daten vom fetcher lokal speichern
+  useEffect(() => {
+    if (
+      fetcher.data &&
+      "children" in fetcher.data &&
+      fetcher.data.parentId === todo.$id
+    ) {
+      setLocalChildren(fetcher.data.children as Todo[]);
+    }
+  }, [fetcher.data, todo.$id]);
+
+  // Nach erfolgreicher Subtask-Erstellung, Children neu laden
+  useEffect(() => {
+    if (
+      addSubtaskFetcher.state === "idle" &&
+      addSubtaskFetcher.data &&
+      "success" in addSubtaskFetcher.data
+    ) {
+      fetcher.submit(
+        { intent: "loadChildren", parentId: todo.$id },
+        { method: "post" }
+      );
+      if (subtaskFormRef.current) {
+        subtaskFormRef.current.reset();
+      }
+    }
+  }, [addSubtaskFetcher.state, addSubtaskFetcher.data, todo.$id]);
+
+  // Children aus verschiedenen Quellen abrufen
+  const children =
+    loadedChildren[todo.$id] || localChildren || todo.children || [];
+  const hasChildren = children.length > 0;
+  const isLoadingChildren =
+    fetcher.state === "submitting" &&
+    fetcher.formData?.get("parentId") === todo.$id;
+
+  // Expand-Button Handler mit automatischem Laden
+  const handleExpand = () => {
+    if (!isExpanded) {
+      if (
+        !loadedChildren[todo.$id] &&
+        !localChildren.length &&
+        !todo.children
+      ) {
+        fetcher.submit(
+          { intent: "loadChildren", parentId: todo.$id },
+          { method: "post" }
+        );
+      }
+    }
+    setIsExpanded(!isExpanded);
+  };
 
   // Subtask-Formular nach erfolgreichem Submit zurücksetzen
   useEffect(() => {
@@ -38,18 +95,17 @@ export function TodoItem({ todo, level = 0 }: TodoItemProps) {
   return (
     <div className={`todo-item-wrapper ${level > 0 ? "nested" : ""}`}>
       <div className="todo-item">
-        {todo.children && todo.children.length > 0 && (
-          <button
-            type="button"
-            onClick={() => setIsExpanded(!isExpanded)}
-            className="expand-btn"
-            aria-label={
-              isExpanded ? "إغلاق المهام الفرعية" : "توسيع المهام الفرعية"
-            }
-          >
-            {isExpanded ? "▼" : "▶"}
-          </button>
-        )}
+        {/* Expand-Button für alle Aufgaben */}
+        <button
+          type="button"
+          onClick={handleExpand}
+          className="expand-btn"
+          aria-label={
+            isExpanded ? "Unteraufgaben schließen" : "Unteraufgaben erweitern"
+          }
+        >
+          {isLoadingChildren ? "⋯" : isExpanded ? "▼" : "▶"}
+        </button>
 
         {/* Toggle-Button */}
         <Form method="post" className="todo-form">
@@ -72,8 +128,8 @@ export function TodoItem({ todo, level = 0 }: TodoItemProps) {
         {/* Aufgaben-Titel */}
         <span className={`todo-title ${todo.completed ? "completed" : ""}`}>
           {todo.title}
-          {todo.children && todo.children.length > 0 && (
-            <span className="subtask-count"> ({todo.children.length})</span>
+          {hasChildren && (
+            <span className="subtask-count"> ({children.length})</span>
           )}
         </span>
 
@@ -89,7 +145,11 @@ export function TodoItem({ todo, level = 0 }: TodoItemProps) {
       {isExpanded && (
         <>
           {/* Formular zum Hinzufügen von Unteraufgaben */}
-          <Form method="post" className="subtask-form" ref={subtaskFormRef}>
+          <addSubtaskFetcher.Form
+            method="post"
+            className="subtask-form"
+            ref={subtaskFormRef}
+          >
             <input type="hidden" name="intent" value="add" />
             <input type="hidden" name="parentId" value={todo.$id} />
             <input
@@ -101,13 +161,18 @@ export function TodoItem({ todo, level = 0 }: TodoItemProps) {
             <button type="submit" className="subtask-btn">
               +
             </button>
-          </Form>
+          </addSubtaskFetcher.Form>
 
           {/* Rekursive Darstellung der Unteraufgaben */}
-          {todo.children && todo.children.length > 0 && (
+          {hasChildren && (
             <div className="subtasks-container">
-              {todo.children.map((child) => (
-                <TodoItem key={child.$id} todo={child} level={level + 1} />
+              {children.map((child) => (
+                <TodoItem
+                  key={child.$id}
+                  todo={child}
+                  level={level + 1}
+                  loadedChildren={loadedChildren}
+                />
               ))}
             </div>
           )}

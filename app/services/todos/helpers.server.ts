@@ -26,14 +26,13 @@ export const DATABASE_CONFIG = {
 export function buildTodoHierarchy(todos: Todo[]): Todo[] {
   const todoMap = new Map<string, Todo>();
 
-  // إنشاء خريطة من جميع المهام
   todos.forEach((todo) => {
     todoMap.set(todo.$id, { ...todo, children: [] });
   });
 
   const rootTodos: Todo[] = [];
 
-  // ربط المهام الفرعية بالمهام الأساسية
+  // Linking sub-tasks to their parent tasks
   todos.forEach((todo) => {
     const currentTodo = todoMap.get(todo.$id)!;
 
@@ -42,7 +41,7 @@ export function buildTodoHierarchy(todos: Todo[]): Todo[] {
       if (parent) {
         parent.children!.push(currentTodo);
       } else {
-        // إذا لم يتم العثور على الوالد، اعتبرها مهمة رئيسية
+        // If no parent is found, consider it a root task
         rootTodos.push(currentTodo);
       }
     } else {

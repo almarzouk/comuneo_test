@@ -1,22 +1,24 @@
 // Login-Seite Komponente
 // Behandelt Benutzeranmeldung mit E-Mail und Passwort
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router";
-import { Form, Link, useActionData } from "react-router";
+import { Form, Link, useActionData, useNavigation } from "react-router";
 import { useState } from "react";
-import {
-  checkIfAlreadyAuthenticated,
-  loginUser,
-} from "~/services/auth/service.server";
+import { loginUser } from "~/services/auth/service.server";
 import { validateLoginCredentials } from "~/services/auth/validation";
 
-// Überprüft, ob Benutzer bereits angemeldet ist
+/**
+ * Überprüft, ob Benutzer bereits angemeldet ist
+ * Leitet authentifizierte Benutzer zu /todos weiter
+ */
 export async function loader({ request }: LoaderFunctionArgs) {
-  return checkIfAlreadyAuthenticated(request);
+  return null;
 }
 
+/**
+ * Verarbeitet Anmeldeversuch
+ */
 export async function action({ request }: ActionFunctionArgs) {
   const formData = await request.formData();
-
   const email = formData.get("email") as string;
   const password = formData.get("password") as string;
 
@@ -25,7 +27,10 @@ export async function action({ request }: ActionFunctionArgs) {
 
 export default function Login() {
   const actionData = useActionData<typeof action>();
+  const navigation = useNavigation();
   const [clientErrors, setClientErrors] = useState<Record<string, string>>({});
+
+  const isSubmitting = navigation.state === "submitting";
 
   // Client-side Validierung beim Submit
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
@@ -48,11 +53,18 @@ export default function Login() {
   return (
     <div className="container">
       <h1>Anmelden</h1>
-      {actionData?.error && <div className="error">{actionData.error}</div>}
+
+      {actionData?.error && (
+        <div className="error" role="alert">
+          {actionData.error}
+        </div>
+      )}
 
       <Form method="post" onSubmit={handleSubmit}>
         <div className="form-field">
+          <label htmlFor="email">E-Mail</label>
           <input
+            id="email"
             type="email"
             name="email"
             placeholder="E-Mail"
@@ -62,14 +74,16 @@ export default function Login() {
             aria-describedby={fieldErrors.email ? "email-error" : undefined}
           />
           {fieldErrors.email && (
-            <span className="field-error" id="email-error">
+            <span className="field-error" id="email-error" role="alert">
               {fieldErrors.email}
             </span>
           )}
         </div>
 
         <div className="form-field">
+          <label htmlFor="password">Passwort</label>
           <input
+            id="password"
             type="password"
             name="password"
             placeholder="Passwort"
@@ -81,17 +95,20 @@ export default function Login() {
             }
           />
           {fieldErrors.password && (
-            <span className="field-error" id="password-error">
+            <span className="field-error" id="password-error" role="alert">
               {fieldErrors.password}
             </span>
           )}
         </div>
 
-        <button type="submit">Anmelden</button>
+        <button type="submit" disabled={isSubmitting}>
+          {isSubmitting ? "Wird angemeldet..." : "Anmelden"}
+        </button>
       </Form>
 
-      <br />
-      <Link to="/signup">Noch kein Konto? Registrieren</Link>
+      <div className="auth-links">
+        <Link to="/signup">Noch kein Konto? Registrieren</Link>
+      </div>
     </div>
   );
 }

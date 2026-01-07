@@ -4,9 +4,10 @@ import type { Todo } from "~/services/todos/types";
 
 type TodoListProps = {
   todos: Todo[];
+  loadedChildren: Record<string, Todo[]>;
 };
 
-export function TodoList({ todos }: TodoListProps) {
+export function TodoList({ todos, loadedChildren }: TodoListProps) {
   if (todos.length === 0) {
     return (
       <div>
@@ -26,7 +27,11 @@ export function TodoList({ todos }: TodoListProps) {
       <h2 className="tasks-section-title">Meine Aufgaben</h2>
       <div className="tasks-list">
         {todos.map((todo) => (
-          <TodoItem key={todo.$id} todo={todo} />
+          <TodoItem
+            key={todo.$id}
+            todo={todo}
+            loadedChildren={loadedChildren}
+          />
         ))}
       </div>
     </div>

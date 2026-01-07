@@ -1,18 +1,26 @@
-// Appwrite Session Management - إدارة جلسات المستخدمين
-import { Account, Databases, Users } from "node-appwrite";
-import { adminClient } from "./appwrite.config.server";
+// Appwrite Session Management
+// Session- und Authentifizierungsverwaltung serverseitig
+import { Client, Account, Databases } from "node-appwrite";
 
 /**
- * erhalten der Sitzung aus Cookies
+ * Session aus Cookies extrahieren
+ *
+ * @param request - HTTP request object
+ * @returns Session secret oder null
  */
 export function getSessionFromCookies(request: Request): string | null {
   const cookieHeader = request.headers.get("Cookie");
-  if (!cookieHeader) return null;
+
+  if (!cookieHeader) {
+    return null;
+  }
 
   const cookies = cookieHeader.split(";").reduce(
     (acc, cookie) => {
       const [key, value] = cookie.trim().split("=");
-      if (key && value) acc[key] = value;
+      if (key && value) {
+        acc[key] = value;
+      }
       return acc;
     },
     {} as Record<string, string>
@@ -22,42 +30,75 @@ export function getSessionFromCookies(request: Request): string | null {
     key.startsWith("a_session_")
   );
 
-  return sessionKey && cookies[sessionKey] ? cookies[sessionKey] : null;
+  if (!sessionKey) {
+    return null;
+  }
+
+  const sessionSecret = cookies[sessionKey];
+
+  return sessionSecret || null;
 }
 
 /**
- * Erstellen eines Appwrite-Clients mit Benutzersitzung
+ * Appwrite Client mit Benutzer-Session erstellen
+ *
+ * @param request - HTTP request object
+ * @returns Object mit client, account, databases, user
+ * @throws Error wenn keine gültige Session vorhanden
  */
 export async function createSessionClient(request: Request) {
-  const userId = getSessionFromCookies(request);
+  const sessionSecret = getSessionFromCookies(request);
 
-  if (!userId) {
+  if (!sessionSecret) {
     throw new Error("No session found");
   }
 
   try {
-    const usersApi = new Users(adminClient);
-    const user = await usersApi.get(userId);
+    const client = new Client()
+      .setEndpoint(process.env.APPWRITE_ENDPOINT!)
+      .setProject(process.env.APPWRITE_PROJECT_ID!)
+      .setSession(sessionSecret);
+
+    const account = new Account(client);
+    const user = await account.get();
 
     return {
-      client: adminClient,
-      account: new Account(adminClient),
-      databases: new Databases(adminClient),
+      client,
+      account,
+      databases: new Databases(client),
       user,
     };
   } catch (error: any) {
-    throw new Error("Invalid session");
+    throw new Error(`Invalid session: ${error.message || "Unknown error"}`);
   }
 }
 
 /**
- * Holen Sie den aktuellen Benutzer basierend auf der Anforderung
+ * Aktuellen Benutzer aus Session abrufen
+ *
+ * @param request - HTTP request object
+ * @returns User object oder null wenn keine Session
  */
 export async function getCurrentUser(request: Request) {
   try {
     const session = await createSessionClient(request);
     return session.user;
-  } catch {
+  } catch (error) {
     return null;
+  }
+}
+
+/**
+ * Überprüfen ob Benutzer eine gültige Session hat
+ *
+ * @param request - HTTP request object
+ * @returns true wenn gültige Session vorhanden
+ */
+export async function hasValidSession(request: Request): Promise<boolean> {
+  try {
+    await createSessionClient(request);
+    return true;
+  } catch {
+    return false;
   }
 }
